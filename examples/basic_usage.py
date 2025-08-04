@@ -1,6 +1,6 @@
 import logging
 import sys
-from darktrace import log_exception_state
+from tracelight import log_exception_state
 
 # Configure logging to stdout
 logging.basicConfig(
@@ -8,7 +8,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(message)s",
     stream=sys.stdout
 )
-logger = logging.getLogger("darktrace_example")
+logger = logging.getLogger("tracelight_example")
 
 # Example function that will raise an exception
 def calculate_value(x, y):
@@ -22,7 +22,7 @@ def main():
         value = calculate_value(42, 0)
         print(f"Calculated value: {value}")  # This won't execute
     except Exception as e:
-        # Use darktrace to log all variables in each stack frame
+        # Use tracelight to log all variables in each stack frame
         print("\n🔍 Exception caught! Logging all local variables in each frame:\n")
         log_exception_state(e, logger, level=logging.ERROR)
         print("\n✅ All variables logged. Now we can fix the issue knowing the full context.")

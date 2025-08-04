@@ -3,8 +3,8 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "darktrace"
-version = "0.1.0"
+name = "tracelight"
+version = "0.1.1"
 description = "Reveal hidden state in Python exceptions with automatic variable tracing"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -28,9 +28,9 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/yourusername/darktrace"
-"Bug Tracker" = "https://github.com/yourusername/darktrace/issues"
-"Documentation" = "https://github.com/yourusername/darktrace#readme"
+"Homepage" = "https://github.com/newsbubbles/tracelight"
+"Bug Tracker" = "https://github.com/newsbubbles/tracelight/issues"
+"Documentation" = "https://github.com/newsbubbles/tracelight#readme"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

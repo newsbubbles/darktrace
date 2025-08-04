@@ -3,7 +3,7 @@ import sys
 import json
 from typing import Dict, Any
 
-from darktrace.agent_utils import traced_tool
+from tracelight.agent_utils import traced_tool
 
 # Configure logging
 logging.basicConfig(

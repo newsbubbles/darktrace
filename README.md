@@ -1,20 +1,20 @@
-# Darktrace
+# Tracelight
 
 > Reveal hidden state in Python exceptions with automatic variable tracing
 
-Darktrace exposes the hidden state of your application by automatically logging all local variables in each frame of an exception's traceback. This gives you instant insight into what went wrong without having to add print statements or run in debug mode.
+Tracelight exposes the hidden state of your application by automatically logging all local variables in each frame of an exception's traceback. This gives you instant insight into what went wrong without having to add print statements or run in debug mode.
 
 ## Installation
 
 ```bash
-pip install darktrace
+pip install tracelight
 ```
 
 ## Quick Start
 
 ```python
 import logging
-from darktrace import log_exception_state
+from tracelight import log_exception_state
 
 # Configure your logger however you like
 logging.basicConfig(level=logging.DEBUG)
@@ -41,7 +41,7 @@ except Exception as e:
 Automate error handling with the `@traced` decorator:
 
 ```python
-from darktrace import traced
+from tracelight import traced
 
 @traced()
 def risky_function(x, y):
@@ -57,7 +57,7 @@ risky_function("input", "missing_key")
 Specifically designed for agent systems and MCP servers:
 
 ```python
-from darktrace.agent_utils import traced_tool
+from tracelight.agent_utils import traced_tool
 
 @traced_tool()
 def weather_tool(location="New York"):
@@ -73,7 +73,7 @@ def weather_tool(location="New York"):
 Easily wrap specific blocks of code:
 
 ```python
-from darktrace import TracedError
+from tracelight import TracedError
 
 # Automatically logs and preserves original exception
 with TracedError(logger=my_logger):
@@ -82,33 +82,33 @@ with TracedError(logger=my_logger):
 
 ## Use Cases
 
-Darktrace is particularly useful for:
+Tracelight is particularly useful for:
 
 ### 1. Data‐Pipeline Breakdowns
 
 **Context**: Multi-stage ETL jobs where a mysterious `KeyError` pops up.
 
-**With Darktrace**: Your logs show the full contents of the record and every local variable—no need to sprinkle `print` calls or guess which field is missing.
+**With Tracelight**: Your logs show the full contents of the record and every local variable—no need to sprinkle `print` calls or guess which field is missing.
 
 ### 2. Async Callback Chaos
 
 **Context**: In an `asyncio`-driven system, tasks fire off callbacks and one raises an exception deep inside a helper function.
 
-**With Darktrace**: You get the full context of all local variables in that callback frame—instantly pinpointing the cause.
+**With Tracelight**: You get the full context of all local variables in that callback frame—instantly pinpointing the cause.
 
 ### 3. Agent-Based Workflows
 
 **Context**: Your LLM‐driven agent orchestrates several tools; one tool call fails with a parsing error.
 
-**With Darktrace**: You immediately see all variables in context, including the raw responses and state data—so you can adjust your tool chain.
+**With Tracelight**: You immediately see all variables in context, including the raw responses and state data—so you can adjust your tool chain.
 
 ## Integration with Agent Systems
 
-Darktrace is designed to work seamlessly with agent-based systems and Model Context Protocol (MCP) servers. It can be integrated as a drop-in error handler to provide rich debugging information when tool calls or agent workflows fail unexpectedly.
+Tracelight is designed to work seamlessly with agent-based systems and Model Context Protocol (MCP) servers. It can be integrated as a drop-in error handler to provide rich debugging information when tool calls or agent workflows fail unexpectedly.
 
 ```python
-from darktrace import log_exception_state
-from darktrace.agent_utils import traced_tool
+from tracelight import log_exception_state
+from tracelight.agent_utils import traced_tool
 
 # Method 1: Wrap entire tool with decorator
 @traced_tool()
@@ -135,19 +135,19 @@ def another_tool(params):
 
 ## FastMCP Integration Example
 
-Darktrace integrates seamlessly with FastMCP servers for rich error handling in MCP tools:
+Tracelight integrates seamlessly with FastMCP servers for rich error handling in MCP tools:
 
 ```python
 from mcp.server.fastmcp import FastMCP, Context
 from pydantic import BaseModel, Field
-from darktrace.agent_utils import traced_tool
+from tracelight.agent_utils import traced_tool
 import logging
 
 # Setup logging
 logger = logging.getLogger("mcp-server")
 
 # Create FastMCP server
-mcp = FastMCP("DarktraceExample")
+mcp = FastMCP("TracelightExample")
 
 # Define request model
 class WeatherRequest(BaseModel):
@@ -189,13 +189,13 @@ async def get_weather(request: WeatherRequest, ctx: Context):
     )
 ```
 
-When the tool fails, Darktrace logs the complete variable state and returns a structured error response that works perfectly with FastMCP's tool response format, making it easy for agents to handle errors gracefully.
+When the tool fails, Tracelight logs the complete variable state and returns a structured error response that works perfectly with FastMCP's tool response format, making it easy for agents to handle errors gracefully.
 
 ## Advanced Usage
 
 ```python
-from darktrace import log_exception_state
-from darktrace.agent_utils import format_for_agent
+from tracelight import log_exception_state
+from tracelight.agent_utils import format_for_agent
 
 # Exclude sensitive variables
 log_exception_state(e, logger, exclude_vars=["password", "api_key"])

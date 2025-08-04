@@ -1,6 +1,6 @@
 import logging
 import sys
-from darktrace.decorators import traced
+from tracelight.decorators import traced
 
 # Configure logging
 logging.basicConfig(
@@ -8,7 +8,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(message)s",
     stream=sys.stdout
 )
-logger = logging.getLogger("darktrace_decorator")
+logger = logging.getLogger("tracelight_decorator")
 
 # Use the @traced decorator to automatically log variable state on exception
 @traced(logger=logger, level=logging.DEBUG)

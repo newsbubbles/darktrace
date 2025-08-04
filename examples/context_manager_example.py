@@ -1,6 +1,6 @@
 import logging
 import sys
-from darktrace import TracedError
+from tracelight import TracedError
 
 # Configure logging
 logging.basicConfig(
@@ -8,7 +8,7 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(message)s",
     stream=sys.stdout
 )
-logger = logging.getLogger("darktrace_context")
+logger = logging.getLogger("tracelight_context")
 
 # Function that will raise an error
 def parse_complex_data(data):
