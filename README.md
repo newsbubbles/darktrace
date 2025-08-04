@@ -4,6 +4,14 @@
 
 Tracelight exposes the hidden state of your application by automatically logging all local variables in each frame of an exception's traceback. This gives you instant insight into what went wrong without having to add print statements or run in debug mode.
 
+## ✨ Special Features
+
+🔧 **Pydantic Integration**: Automatically detects and serializes Pydantic models (both v1 and v2) in exception traces, showing model data instead of object representations.
+
+🤖 **Agent-First Design**: Built specifically for agent systems and MCP servers with structured error responses that never crash your workflows.
+
+📊 **Smart Variable Handling**: Intelligently formats complex data structures, truncates large values, and excludes sensitive information.
+
 ## Installation
 
 ```bash
@@ -78,6 +86,32 @@ from tracelight import TracedError
 # Automatically logs and preserves original exception
 with TracedError(logger=my_logger):
     risky_operation()
+```
+
+### 🔧 Pydantic Model Support
+
+Tracelight automatically detects and properly serializes Pydantic models in exception traces:
+
+```python
+from pydantic import BaseModel
+from tracelight import log_exception_state
+
+class UserModel(BaseModel):
+    name: str
+    age: int
+    email: str
+
+def process_user(user_data):
+    user = UserModel(**user_data)  # Pydantic model
+    # ... processing that might fail
+    return user.name.upper().split()[10]  # IndexError!
+
+try:
+    process_user({"name": "Alice Smith", "age": 30, "email": "alice@example.com"})
+except Exception as e:
+    # Tracelight will show the full Pydantic model data:
+    # user = {'name': 'Alice Smith', 'age': 30, 'email': 'alice@example.com'}
+    log_exception_state(e, logger)
 ```
 
 ## Use Cases
