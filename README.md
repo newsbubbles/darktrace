@@ -34,6 +34,52 @@ except Exception as e:
     raise
 ```
 
+## Key Features
+
+### Function Decorator
+
+Automate error handling with the `@traced` decorator:
+
+```python
+from darktrace import traced
+
+@traced()
+def risky_function(x, y):
+    complicated_result = process(x)
+    return complicated_result[y]  # Might raise KeyError
+
+# All exceptions automatically logged with full variable context!
+risky_function("input", "missing_key")
+```
+
+### Agent Tool Decorator
+
+Specifically designed for agent systems and MCP servers:
+
+```python
+from darktrace.agent_utils import traced_tool
+
+@traced_tool()
+def weather_tool(location="New York"):
+    # Complex implementation with HTTP calls etc.
+    return get_weather_data(location) 
+
+# If anything fails, returns a structured error dict:
+# {"status": "error", "error_type": "...", ...}
+```
+
+### Context Manager
+
+Easily wrap specific blocks of code:
+
+```python
+from darktrace import TracedError
+
+# Automatically logs and preserves original exception
+with TracedError(logger=my_logger):
+    risky_operation()
+```
+
 ## Use Cases
 
 Darktrace is particularly useful for:
@@ -62,8 +108,16 @@ Darktrace is designed to work seamlessly with agent-based systems and Model Cont
 
 ```python
 from darktrace import log_exception_state
+from darktrace.agent_utils import traced_tool
 
-def agent_tool_call(params):
+# Method 1: Wrap entire tool with decorator
+@traced_tool()
+def agent_tool(params):
+    # Complex implementation...
+    return process_complex_workflow(params)
+
+# Method 2: Manual integration
+def another_tool(params):
     try:
         # Complex tool implementation
         result = process_complex_workflow(params)
@@ -83,8 +137,15 @@ def agent_tool_call(params):
 
 ```python
 from darktrace import log_exception_state
+from darktrace.agent_utils import format_for_agent
 
-# Customize variable formatting
+# Exclude sensitive variables
+log_exception_state(e, logger, exclude_vars=["password", "api_key"])
+
+# Custom formatting for agent consumption
+log_exception_state(e, logger, format_var=format_for_agent)
+
+# Customize log level and variable length
 log_exception_state(e, logger, 
                    level=logging.ERROR,  # Log level
                    max_var_length=2000)  # Allow longer variable values
