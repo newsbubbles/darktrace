@@ -8,5 +8,5 @@ statements or run in debug mode.
 from tracelight.core import log_exception_state, TracedError
 from tracelight.decorators import traced
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __all__ = ["log_exception_state", "TracedError", "traced"]
