@@ -11,9 +11,9 @@ def log_exception_state(exc: Exception,
                         *,
                         max_var_length: int = 1000,
                         exclude_vars: Optional[List[str]] = None,
-                        format_var: Optional[Callable[[str, Any], str]] = None) -> None:
+                        format_var: Optional[Callable[[str, Any], str]] = None) -> Dict[str, Any]:
     """
-    Walk the traceback of `exc`, logging each frame's local variables.
+    Walk the traceback of `exc`, logging each frame's local variables and return structured data.
 
     Args:
         exc: The caught exception.
@@ -23,9 +23,20 @@ def log_exception_state(exc: Exception,
         exclude_vars: List of variable names to exclude from logging (e.g. passwords).
         format_var: Optional function to customize variable formatting: 
                     format_var(var_name, var_value) -> formatted_string
+                    
+    Returns:
+        Dict containing structured exception data with error info and frame details.
     """
     exclude_vars = exclude_vars or []
     tb = exc.__traceback__
+    
+    # Build structured data
+    error_data = {
+        "error": str(exc),
+        "error_type": type(exc).__name__,
+        "frames": []
+    }
+    
     # Header for context
     logger.log(level, "Logging exception state for: %s: %s",
               type(exc).__name__, exc)
@@ -42,6 +53,15 @@ def log_exception_state(exc: Exception,
                   "-- Frame %d: %r in %s at line %d --",
                   frame_count, func_name, filename, lineno)
 
+        # Build frame data
+        frame_data = {
+            "frame_number": frame_count,
+            "function": func_name,
+            "file": filename,
+            "line": lineno,
+            "locals": {}
+        }
+
         for var_name, var_val in frame.f_locals.items():
             if var_name in exclude_vars:
                 continue
@@ -54,12 +74,31 @@ def log_exception_state(exc: Exception,
                     # truncate if too long
                     if len(rep) > max_var_length:
                         rep = rep[:max_var_length] + "...<truncated>"
+                        
+                # Store both the formatted representation and attempt to store the actual value
+                # For structured data, try to keep the actual value if it's JSON-serializable
+                try:
+                    # Test if value is JSON-serializable basic types
+                    if isinstance(var_val, (str, int, float, bool, type(None), list, dict)):
+                        # For basic types, store the actual value
+                        frame_data["locals"][var_name] = var_val
+                    else:
+                        # For complex types, store the string representation
+                        frame_data["locals"][var_name] = rep
+                except (TypeError, ValueError):
+                    # Fallback to string representation
+                    frame_data["locals"][var_name] = rep
+                    
             except Exception as format_err:
                 rep = f"<unrepresentable: {type(format_err).__name__}>"
+                frame_data["locals"][var_name] = rep
 
             logger.log(level, "    %s = %s", var_name, rep)
 
+        error_data["frames"].append(frame_data)
         tb = tb.tb_next
+    
+    return error_data
         
 
 class TracedError(Exception):

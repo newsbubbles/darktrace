@@ -33,7 +33,9 @@ def traced_tool(logger: Optional[logging.Logger] = None,
             "status": "error",
             "error_type": "ExceptionClassName",
             "error": "Error message", 
-            "traceback": "Formatted traceback"
+            "traceback": "Formatted traceback",
+            # Detailed error data directly available at root level
+            "frames": [...],  # Detailed frame info with locals
         }
     """
     _logger = logger or logging.getLogger(__name__)
@@ -50,8 +52,8 @@ def traced_tool(logger: Optional[logging.Logger] = None,
                 # Otherwise wrap the result
                 return {"status": "success", "result": result}
             except Exception as e:
-                # Log the detailed state
-                log_exception_state(
+                # Get the detailed state data from log_exception_state
+                error_data = log_exception_state(
                     e, 
                     _logger, 
                     level, 
@@ -59,13 +61,18 @@ def traced_tool(logger: Optional[logging.Logger] = None,
                     exclude_vars=_exclude_vars
                 )
                 
-                # Return a structured error response
-                return {
+                # Return a structured error response with complete error data
+                # Merge the error_data directly into the response for easier access
+                response = {
                     "status": "error",
-                    "error_type": type(e).__name__,
-                    "error": str(e),
-                    "traceback": traceback.format_exc()
+                    "error_type": error_data["error_type"],
+                    "error": error_data["error"],
+                    "traceback": traceback.format_exc(),
+                    # Include frame data at root level for direct access
+                    "frames": error_data["frames"]
                 }
+                
+                return response
                 
         return cast(F, wrapper)
     return decorator
