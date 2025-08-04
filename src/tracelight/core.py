@@ -79,7 +79,8 @@ def log_exception_state(exc: Exception,
                 # For structured data, try to keep the actual value if it's JSON-serializable
                 try:
                     # Test if value is JSON-serializable basic types
-                    if isinstance(var_val, (str, int, float, bool, type(None), list, dict)):
+                    if isinstance(var_val, (str, int, float, bool, type(None))) or \
+                       (isinstance(var_val, (list, dict)) and not var_name.startswith('__')):
                         # For basic types, store the actual value
                         frame_data["locals"][var_name] = var_val
                     else:

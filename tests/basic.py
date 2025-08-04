@@ -61,7 +61,7 @@ def outer_function(x):
 def inner_function(value, items, mapping):
     """Inner function that will fail with an index error"""
     # This will raise an IndexError if value >= len(items)
-    return items[value] * mapping["multiplier"]
+    return items[value] * mapping.get("multiplier", 1)
 
 # A function that directly uses log_exception_state to demonstrate the return value
 def demo_log_exception_state(x):
@@ -97,7 +97,11 @@ if __name__ == "__main__":
     print(f"Result status: {result['status']}")
     print(f"Error type: {result.get('error_type')}")
     print(f"Error message: {result.get('error')}")
-    print(f"First frame function: {result.get('frames', [{}])[0].get('function')}")
+    # Check if frames is present and has at least one frame
+    if result.get('frames') and len(result['frames']) > 0:
+        print(f"First frame function: {result['frames'][0].get('function')}")
+    else:
+        print("No frames or empty frames list")
     
     # Test 3: Nested Error with multiple frames
     print("\nTest 3: Nested Function with Multiple Frames")
@@ -105,8 +109,16 @@ if __name__ == "__main__":
     print(f"Result status: {result['status']}")
     print(f"Error type: {result.get('error_type')}")
     print(f"Error message: {result.get('error')}")
-    print(f"Stack frames: {[frame.get('function') for frame in result.get('frames', [])]}")
-    print(f"Local variables in first frame: {list(result.get('frames', [{}])[0].get('locals', {}).keys())}")
+    # Safely get frame functions
+    if 'frames' in result and result['frames']:
+        frame_functions = [frame.get('function') for frame in result['frames']]
+        print(f"Stack frames: {frame_functions}")
+        if result['frames'][0].get('locals'):
+            print(f"Local variables in first frame: {list(result['frames'][0]['locals'].keys())}")
+        else:
+            print("No locals in first frame")
+    else:
+        print("No frames available")
     
     # Test 4: Direct use of log_exception_state
     print("\nTest 4: Direct Use of log_exception_state")
@@ -115,6 +127,9 @@ if __name__ == "__main__":
     if result['status'] == 'error':
         print(f"Error type: {result.get('error_type')}")
         print(f"Error message: {result.get('error')}")
+        if 'frames' in result and result['frames']:
+            print(f"Frame count: {len(result['frames'])}")
+            print(f"First frame function: {result['frames'][0].get('function')}")
     
     print("\n=== TEST COMPLETE ===\n")
     print(f"Check logs/tracelight_test.log for full trace output")

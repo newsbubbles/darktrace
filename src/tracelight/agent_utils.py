@@ -61,15 +61,23 @@ def traced_tool(logger: Optional[logging.Logger] = None,
                     exclude_vars=_exclude_vars
                 )
                 
+                # Make sure error_data is not None before proceeding
+                if error_data is None:
+                    error_data = {
+                        "error_type": type(e).__name__,
+                        "error": str(e),
+                        "frames": []
+                    }
+                
                 # Return a structured error response with complete error data
                 # Merge the error_data directly into the response for easier access
                 response = {
                     "status": "error",
-                    "error_type": error_data["error_type"],
-                    "error": error_data["error"],
+                    "error_type": error_data.get("error_type", type(e).__name__),
+                    "error": error_data.get("error", str(e)),
                     "traceback": traceback.format_exc(),
                     # Include frame data at root level for direct access
-                    "frames": error_data["frames"]
+                    "frames": error_data.get("frames", [])
                 }
                 
                 return response
