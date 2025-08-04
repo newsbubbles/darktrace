@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import json
 from pydantic import BaseModel, Field
 from tracelight.agent_utils import traced_tool
 from tracelight.core import log_exception_state
@@ -62,33 +63,58 @@ def inner_function(value, items, mapping):
     # This will raise an IndexError if value >= len(items)
     return items[value] * mapping["multiplier"]
 
+# A function that directly uses log_exception_state to demonstrate the return value
+def demo_log_exception_state(x):
+    """Demonstrate log_exception_state's structured return value"""
+    try:
+        result = inner_function(x, [1, 2, 3], {"a": 1})
+        return {"status": "success", "result": result}
+    except Exception as e:
+        # Capture and return the structured error data
+        structured_data = log_exception_state(
+            e, logger, logging.ERROR,
+            max_var_length=500
+        )
+        print("\nSTRUCTURED ERROR DATA:\n")
+        print(json.dumps(structured_data, indent=2))
+        return {"status": "error", **structured_data}
+
 # Run tests
 if __name__ == "__main__":
     print("\n=== RUNNING TRACELIGHT TESTS ===\n")
     
-    # Test 1: Validation Error
+    # Test 1: Validation Error with traced_tool
     print("\nTest 1: Pydantic Validation Error")
-    try:
-        result = function_with_validation_error({"optional_field": "test"})
-        print(f"Result: {result}")
-    except Exception as e:
-        print(f"Caught exception: {e}")
+    result = function_with_validation_error({"optional_field": "test"})
+    print(f"Result status: {result['status']}")
+    print(f"Error type: {result.get('error_type')}")
+    print(f"Error message: {result.get('error')}")
+    print(f"Number of stack frames: {len(result.get('frames', []))}")
     
-    # Test 2: Runtime Error
+    # Test 2: Runtime Error with traced_tool
     print("\nTest 2: Division by Zero")
-    try:
-        result = function_with_runtime_error(10, 0)
-        print(f"Result: {result}")
-    except Exception as e:
-        print(f"Caught exception: {e}")
+    result = function_with_runtime_error(10, 0)
+    print(f"Result status: {result['status']}")
+    print(f"Error type: {result.get('error_type')}")
+    print(f"Error message: {result.get('error')}")
+    print(f"First frame function: {result.get('frames', [{}])[0].get('function')}")
     
     # Test 3: Nested Error with multiple frames
     print("\nTest 3: Nested Function with Multiple Frames")
-    try:
-        result = outer_function(10)
-        print(f"Result: {result}")
-    except Exception as e:
-        print(f"Caught exception: {e}")
+    result = outer_function(10)
+    print(f"Result status: {result['status']}")
+    print(f"Error type: {result.get('error_type')}")
+    print(f"Error message: {result.get('error')}")
+    print(f"Stack frames: {[frame.get('function') for frame in result.get('frames', [])]}")
+    print(f"Local variables in first frame: {list(result.get('frames', [{}])[0].get('locals', {}).keys())}")
+    
+    # Test 4: Direct use of log_exception_state
+    print("\nTest 4: Direct Use of log_exception_state")
+    result = demo_log_exception_state(5)
+    print(f"Result status: {result['status']}")
+    if result['status'] == 'error':
+        print(f"Error type: {result.get('error_type')}")
+        print(f"Error message: {result.get('error')}")
     
     print("\n=== TEST COMPLETE ===\n")
     print(f"Check logs/tracelight_test.log for full trace output")
