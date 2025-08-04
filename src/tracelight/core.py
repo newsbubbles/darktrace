@@ -49,6 +49,7 @@ def log_exception_state(exc: Exception,
         filename: str = frame.f_code.co_filename
         
         frame_count += 1
+        
         logger.log(level,
                   "-- Frame %d: %r in %s at line %d --",
                   frame_count, func_name, filename, lineno)
@@ -67,6 +68,27 @@ def log_exception_state(exc: Exception,
                 continue
                 
             try:
+                # Check if it's a Pydantic BaseModel and handle specially
+                if hasattr(var_val, '__class__'):
+                    # Try model_dump for Pydantic v2
+                    if hasattr(var_val.__class__, 'model_dump'):
+                        try:
+                            frame_data["locals"][var_name] = var_val.model_dump()
+                            continue
+                        except Exception:
+                            # Fall through to next approach
+                            pass
+                    
+                    # Try dict() for Pydantic v1
+                    if hasattr(var_val, 'dict') and callable(var_val.dict):
+                        try:
+                            frame_data["locals"][var_name] = var_val.dict()
+                            continue
+                        except Exception:
+                            # Fall through to regular processing
+                            pass
+                
+                # Regular variable processing
                 if format_var is not None:
                     rep = format_var(var_name, var_val)
                 else:
@@ -75,8 +97,7 @@ def log_exception_state(exc: Exception,
                     if len(rep) > max_var_length:
                         rep = rep[:max_var_length] + "...<truncated>"
                         
-                # Store both the formatted representation and attempt to store the actual value
-                # For structured data, try to keep the actual value if it's JSON-serializable
+                # Try to keep the actual value if it's JSON-serializable
                 try:
                     # Test if value is JSON-serializable basic types
                     if isinstance(var_val, (str, int, float, bool, type(None))) or \

@@ -3,9 +3,24 @@
 import logging
 import sys
 import json
+import os
+from pathlib import Path
+
+# Add the src directory to the Python path if not already there
+src_path = Path(__file__).resolve().parent.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+    print(f"Added {src_path} to Python path")
+else:
+    print(f"{src_path} already in Python path")
+
+# Import after adjusting Python path
+import tracelight
 from pydantic import BaseModel, Field
 from tracelight.agent_utils import traced_tool
 from tracelight.core import log_exception_state
+
+print(f"Imported tracelight.core from {tracelight.core.__file__}")
 
 # Set up visible logging to both file and console
 logger = logging.getLogger("tracelight_test")
@@ -76,12 +91,14 @@ def demo_log_exception_state(x):
             max_var_length=500
         )
         print("\nSTRUCTURED ERROR DATA:\n")
-        print(json.dumps(structured_data, indent=2))
-        return {"status": "error", **structured_data}
+        print(json.dumps(structured_data, indent=2) if structured_data else "None returned")
+        return {"status": "error", **(structured_data or {})}
 
 # Run tests
 if __name__ == "__main__":
     print("\n=== RUNNING TRACELIGHT TESTS ===\n")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Python path: {sys.path}")
     
     # Test 1: Validation Error with traced_tool
     print("\nTest 1: Pydantic Validation Error")

@@ -2,6 +2,12 @@ import logging
 import sys
 import json
 from typing import Dict, Any
+from pathlib import Path
+
+# Add the src directory to the Python path if not already there (for local development)
+src_path = Path(__file__).resolve().parent.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 from tracelight.agent_utils import traced_tool
 

@@ -1,128 +1,140 @@
-#!/usr/bin/env python3
-
+import unittest
 import logging
+from io import StringIO
 import sys
+from pathlib import Path
 import json
 from typing import Dict, Any, Optional
+
+# Add the src directory to the Python path if not already there
+src_path = Path(__file__).resolve().parent.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
 from tracelight.agent_utils import traced_tool
 from tracelight.core import TracedError
 
 # Set up logging
-logger = logging.getLogger("decorator_test")
-logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-# Console handler
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.DEBUG)
-console_formatter = logging.Formatter("%(levelname)s - %(message)s")
-console_handler.setFormatter(console_formatter)
-logger.addHandler(console_handler)
 
-# Define some example tools that might be used in an agent system
-
-@traced_tool(logger=logger)
-def weather_tool(location: str = "New York") -> Dict[str, Any]:
-    """Simulated weather tool that would normally make API calls"""
-    if not location:
-        raise ValueError("Location cannot be empty")
+class TestDecoratorIntegration(unittest.TestCase):
+    """Integration tests for decorators and error handling."""
     
-    if location.lower() == "error":
-        # Simulate deeper error
-        return process_location(location)
-    
-    # Simulate successful API call
-    return {"temperature": 72, "condition": "sunny", "location": location}
-
-
-def process_location(loc: str) -> Dict[str, Any]:
-    """Process location string - will fail for certain inputs"""
-    locations_db = {"new york": {"lat": 40.7, "lng": -74.0}}
-    
-    # Convert to lowercase for lookup
-    loc_key = loc.lower()
-    
-    # This will raise KeyError if location not in our simple DB
-    coords = locations_db[loc_key]
-    
-    # This will cause IndexError
-    some_list = [1, 2, 3]
-    impossible_index = len(some_list) + 10
-    value = some_list[impossible_index]  # This will fail
-    
-    return {"coords": coords, "data": value}
-
-
-@traced_tool(logger=logger)
-def divide_numbers(a: Optional[float] = None, b: Optional[float] = None) -> Dict[str, Any]:
-    """Simulated calculation tool showing different error types"""
-    if a is None or b is None:
-        raise ValueError("Both 'a' and 'b' parameters are required")
+    def setUp(self):
+        # Create a StringIO object to capture log output
+        self.log_output = StringIO()
+        self.handler = logging.StreamHandler(self.log_output)
+        self.test_logger = logging.getLogger("test_decorator_integration")
+        self.test_logger.addHandler(self.handler)
+        self.test_logger.setLevel(logging.DEBUG)
         
-    # This will raise ZeroDivisionError if b is 0
-    result = a / b
+    def tearDown(self):
+        self.test_logger.removeHandler(self.handler)
+        self.handler.close()
     
-    return {"result": result, "operation": "division"}
-
-
-@traced_tool(logger=logger)
-async def async_tool(query: str) -> Dict[str, Any]:
-    """Demonstrate that traced_tool works with async functions too"""
-    # Simulate async operation
-    if not query:
-        raise ValueError("Query cannot be empty")
+    def test_traced_tool_with_complex_data(self):
+        """Test traced_tool with complex data structures."""
         
-    if query.lower() == "error":
-        raise RuntimeError("Simulated async error")
-        
-    # Return success
-    return {"results": [f"Result for {query}"], "count": 1}
-
-
-def run_tool_and_print_result(tool_func, *args, **kwargs):
-    """Helper to run a tool and print its result nicely"""
-    print(f"\nRunning {tool_func.__name__} with args={args}, kwargs={kwargs}")
-    try:
-        result = tool_func(*args, **kwargs)
-        print(f"Result status: {result.get('status')}")
-        
-        if result.get('status') == 'error':
-            # Print error details
-            print(f"Error type: {result.get('error_type')}")
-            print(f"Error message: {result.get('error')}")
-            print(f"Frames captured: {len(result.get('frames', []))}")
+        @traced_tool(logger=self.test_logger)
+        def process_complex_data(data: Dict[str, Any]) -> Dict[str, Any]:
+            # Simulate complex processing
+            user_list = data["users"]  # Will fail if missing
+            processed_users = []
             
-            # Show the first frame's details
-            if result.get('frames'):
-                first_frame = result.get('frames')[0]
-                print(f"\nFirst frame details:")
-                print(f"  Function: {first_frame.get('function')}")
-                print(f"  File: {first_frame.get('file')}")
-                print(f"  Line: {first_frame.get('line')}")
-                print(f"  Local variables: {list(first_frame.get('locals', {}).keys())}")
-        else:
-            # Print success result
-            print(f"Result data: {result.get('result')}")
-    except Exception as e:
-        print(f"Unexpected exception: {type(e).__name__}: {e}")
+            for user in user_list:
+                processed_user = {
+                    "id": user["id"],
+                    "name": user["name"].upper(),
+                    "age_group": "adult" if user["age"] >= 18 else "minor"
+                }
+                processed_users.append(processed_user)
+            
+            return {"processed_users": processed_users, "count": len(processed_users)}
+        
+        # Test with valid data
+        valid_data = {
+            "users": [
+                {"id": 1, "name": "alice", "age": 25},
+                {"id": 2, "name": "bob", "age": 17}
+            ]
+        }
+        
+        result = process_complex_data(valid_data)
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(len(result["result"]["processed_users"]), 2)
+        
+        # Test with invalid data (missing 'users' key)
+        invalid_data = {"members": []}
+        
+        result = process_complex_data(invalid_data)
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(result["error_type"], "KeyError")
+        self.assertIn("users", result["error"])
+        
+        # Check that the data structure was logged
+        output = self.log_output.getvalue()
+        self.assertIn("members", output)  # The invalid key should be logged
+    
+    def test_nested_function_error_tracing(self):
+        """Test error tracing through nested function calls."""
+        
+        @traced_tool(logger=self.test_logger)
+        def outer_processor(config: Dict[str, Any]) -> Dict[str, Any]:
+            settings = config["settings"]
+            return inner_processor(settings)
+        
+        def inner_processor(settings: Dict[str, Any]) -> Dict[str, Any]:
+            # This will fail if 'database_url' is missing
+            db_url = settings["database_url"]
+            return {"connection": f"Connected to {db_url}"}
+        
+        # Test with incomplete config
+        incomplete_config = {
+            "settings": {
+                "debug": True,
+                "port": 8080
+                # Missing 'database_url'
+            }
+        }
+        
+        result = outer_processor(incomplete_config)
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(result["error_type"], "KeyError")
+        
+        # Check that we have frames from both functions
+        self.assertGreater(len(result["frames"]), 1)
+        
+        # Check that local variables from both frames are captured
+        frame_functions = [frame["function"] for frame in result["frames"]]
+        self.assertIn("outer_processor", frame_functions)
+        self.assertIn("inner_processor", frame_functions)
+    
+    def test_traced_error_context_manager(self):
+        """Test TracedError as a context manager."""
+        
+        def risky_operation():
+            with TracedError(logger=self.test_logger):
+                sensitive_data = "secret_password_123"
+                public_data = "hello_world"
+                
+                # Simulate an error
+                raise ValueError("Something went wrong in risky operation")
+        
+        with self.assertRaises(ValueError):
+            risky_operation()
+        
+        output = self.log_output.getvalue()
+        
+        # Check that the error was logged
+        self.assertIn("ValueError", output)
+        self.assertIn("Something went wrong", output)
+        
+        # Check that local variables were captured
+        self.assertIn("sensitive_data", output)
+        self.assertIn("public_data", output)
 
 
-# Run tests
 if __name__ == "__main__":
-    print("\n=== TESTING TRACED_TOOL DECORATOR ===\n")
-    
-    # Test successful case
-    run_tool_and_print_result(weather_tool, location="Seattle")
-    
-    # Test ValueError
-    run_tool_and_print_result(weather_tool, location="")
-    
-    # Test nested error (KeyError -> IndexError)
-    run_tool_and_print_result(weather_tool, location="Error")
-    
-    # Test division error
-    run_tool_and_print_result(divide_numbers, a=10, b=0)
-    
-    # Test missing parameter
-    run_tool_and_print_result(divide_numbers, a=10)
-    
-    print("\n=== TESTS COMPLETE ===\n")
+    unittest.main()

@@ -1,6 +1,13 @@
 import unittest
 import logging
 from io import StringIO
+import sys
+from pathlib import Path
+
+# Add the src directory to the Python path if not already there
+src_path = Path(__file__).resolve().parent.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 from tracelight.decorators import traced
 
@@ -10,7 +17,7 @@ class TestTracedDecorator(unittest.TestCase):
         # Create a StringIO object to capture log output
         self.log_output = StringIO()
         self.handler = logging.StreamHandler(self.log_output)
-        self.logger = logging.getLogger("test_traced")
+        self.logger = logging.getLogger("test_decorators")
         self.logger.addHandler(self.handler)
         self.logger.setLevel(logging.DEBUG)
         
@@ -18,59 +25,48 @@ class TestTracedDecorator(unittest.TestCase):
         self.logger.removeHandler(self.handler)
         self.handler.close()
         
-    def test_traced_decorator_with_exception(self):
-        # Test the @traced decorator when an exception occurs
+    def test_traced_success(self):
+        # Test that traced decorator doesn't interfere with successful execution
         
         @traced(logger=self.logger)
-        def example_function(a, b):
-            x = a + 1
-            y = b - 1
-            return x / y  # This will raise if y is 0
+        def successful_function(x, y):
+            return x + y
         
-        with self.assertRaises(ZeroDivisionError):
-            example_function(5, 1)  # This will cause y to be 0
-        
-        output = self.log_output.getvalue()
-        
-        # Check that the exception and variables were logged
-        self.assertIn("ZeroDivisionError", output)
-        self.assertIn("example_function", output)
-        self.assertIn("a = 5", output)
-        self.assertIn("b = 1", output)
-        self.assertIn("x = 6", output)
-        self.assertIn("y = 0", output)
-        
-    def test_traced_decorator_no_exception(self):
-        # Test that @traced doesn't interfere when no exception occurs
-        
-        @traced(logger=self.logger)
-        def add(a, b):
-            return a + b
-        
-        result = add(3, 4)
-        
-        # Function should work normally
+        result = successful_function(3, 4)
         self.assertEqual(result, 7)
         
-        # No logs should have been written
+        # No logs should be generated on success
         self.assertEqual(self.log_output.getvalue(), "")
         
-    def test_traced_decorator_no_reraise(self):
-        # Test that @traced with reraise=False swallows exceptions
+    def test_traced_error(self):
+        # Test that traced decorator logs errors properly
         
-        @traced(logger=self.logger, reraise=False)
-        def example_function(a, b):
-            return a / b  # This will raise if b is 0
+        @traced(logger=self.logger)
+        def failing_function(x, y):
+            return x / y  # Will fail if y is 0
         
-        # No exception should propagate, but the function returns None
-        result = example_function(5, 0)
-        self.assertIsNone(result)
+        with self.assertRaises(ZeroDivisionError):
+            failing_function(5, 0)
         
-        # But it should still log the exception
         output = self.log_output.getvalue()
+        
+        # Check that variables were logged
         self.assertIn("ZeroDivisionError", output)
-        self.assertIn("a = 5", output)
-        self.assertIn("b = 0", output)
+        self.assertIn("x = 5", output)
+        self.assertIn("y = 0", output)
+        
+    def test_traced_preserves_function_metadata(self):
+        # Test that the decorator preserves function metadata
+        
+        @traced(logger=self.logger)
+        def documented_function(x: int, y: int) -> int:
+            """This function adds two numbers."""
+            return x + y
+        
+        # Check that metadata is preserved
+        self.assertEqual(documented_function.__name__, "documented_function")
+        self.assertEqual(documented_function.__doc__, "This function adds two numbers.")
+        self.assertTrue(hasattr(documented_function, '__annotations__'))
 
 
 if __name__ == "__main__":

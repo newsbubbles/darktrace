@@ -1,6 +1,13 @@
 import unittest
 import logging
 from io import StringIO
+import sys
+from pathlib import Path
+
+# Add the src directory to the Python path if not already there
+src_path = Path(__file__).resolve().parent.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 from tracelight.core import log_exception_state, TracedError
 
