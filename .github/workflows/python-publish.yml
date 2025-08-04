@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write  # Add this for trusted publisher workflow
 
 jobs:
   release-build:
@@ -50,4 +51,5 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          # Don't provide password for trusted publisher workflow
+          # password: ${{ secrets.PYPI_API_TOKEN }}
