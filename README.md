@@ -4,6 +4,15 @@
 
 Tracelight exposes the hidden state of your application by automatically logging all local variables in each frame of an exception's traceback. This gives you instant insight into what went wrong without having to add print statements or run in debug mode.
 
+## ⚠️ Important: Not Related to Python's `trace` Module
+
+Despite the similar name, **Tracelight is not related to or derived from Python's standard library `trace` module**.
+
+- **Python's `trace` module** is a utility for tracing program execution, analyzing code coverage, and monitoring statement execution during development.
+- **Tracelight** is specifically designed for enhancing exception handling in production systems, particularly agent-based workflows and MCP servers.
+
+The two tools serve complementary but distinct purposes: `trace` for code coverage analysis, Tracelight for resilient error handling with rich variable context.
+
 ## ✨ Special Features
 
 🔧 **Pydantic Integration**: Automatically detects and serializes Pydantic models (both v1 and v2) in exception traces, showing model data instead of object representations.
