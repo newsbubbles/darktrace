@@ -133,6 +133,64 @@ def another_tool(params):
         }
 ```
 
+## FastMCP Integration Example
+
+Darktrace integrates seamlessly with FastMCP servers for rich error handling in MCP tools:
+
+```python
+from mcp.server.fastmcp import FastMCP, Context
+from pydantic import BaseModel, Field
+from darktrace.agent_utils import traced_tool
+import logging
+
+# Setup logging
+logger = logging.getLogger("mcp-server")
+
+# Create FastMCP server
+mcp = FastMCP("DarktraceExample")
+
+# Define request model
+class WeatherRequest(BaseModel):
+    city: str = Field(..., description="City to get weather for")
+    country_code: str = Field(None, description="Optional 2-letter country code")
+
+# Define response models
+class WeatherResponse(BaseModel):
+    temperature: float
+    condition: str
+    humidity: int
+
+class ErrorResponse(BaseModel):
+    status: str = "error"
+    error_type: str
+    error: str
+    context: dict = None
+
+# Create traced tool with automatic error handling
+@mcp.tool()
+@traced_tool(logger=logger)
+async def get_weather(request: WeatherRequest, ctx: Context):
+    """Get current weather with automatic error tracing."""
+    # This will automatically log all variables if an exception occurs
+    # and return a properly formatted error response
+    
+    if request.city.lower() == "atlantis":
+        raise ValueError("City not found: Atlantis is a fictional city")  
+        
+    # Simulate API call
+    weather_data = await fetch_weather_api(request.city)  # Would raise on failure
+    
+    # The decorator automatically handles any exceptions and returns
+    # a structured error response that works with FastMCP
+    return WeatherResponse(
+        temperature=23.5,
+        condition="sunny",
+        humidity=65
+    )
+```
+
+When the tool fails, Darktrace logs the complete variable state and returns a structured error response that works perfectly with FastMCP's tool response format, making it easy for agents to handle errors gracefully.
+
 ## Advanced Usage
 
 ```python
